@@ -18,7 +18,7 @@ public class Controller extends Application {
         Scene scene= new Scene(root);
         stage.setResizable(false);
         stage.setTitle("Kruskal");
-        stage.getIcons().add(new Image("file:../Images/kruskallogo.png"));
+        stage.getIcons().add(new Image("file:src/main/resources/Images/kruskallogo.png"));
         stage.setScene(scene);
         stage.show();
     }
