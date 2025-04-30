@@ -10,26 +10,31 @@
 <?import javafx.scene.layout.Pane?>
 <?import javafx.scene.layout.VBox?>
 
-<VBox alignment="CENTER" prefHeight="720.0" prefWidth="1280.0" spacing="10" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="daa.kruskal.KruskalController">
+<VBox alignment="CENTER" prefHeight="720.0" prefWidth="1280.0" spacing="10" styleClass="backgroundPane" stylesheets="@../../CSS/kruskal.css" xmlns="http://javafx.com/javafx/23.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="daa.kruskal.KruskalController">
     <padding>
         <Insets bottom="10" left="10" right="10" top="10" />
     </padding>
-    <HBox alignment="CENTER" spacing="10">
-        <Label text="Number of Vertices:" />
-        <TextField fx:id="verticesField" prefWidth="100" />
+    <HBox alignment="CENTER" prefWidth="1259.0" spacing="10">
+        <Label styleClass="texts" text="Number of Vertices:" />
+        <TextField fx:id="verticesField" prefWidth="100" styleClass="textFields" />
         <Button fx:id="createGraphButton" onAction="#createGraph" text="Create Graph" />
+      <VBox.margin>
+         <Insets />
+      </VBox.margin>
     </HBox>
     <HBox alignment="CENTER" spacing="10">
-        <Label text="Source Vertex:" />
-        <TextField fx:id="srcField" prefWidth="60" />
-        <Label text="Destination Vertex:" />
-        <TextField fx:id="destField" prefWidth="60" />
-        <Label text="Weight:" />
-        <TextField fx:id="weightField" prefWidth="60" />
+        <Label styleClass="texts" text="Source Vertex:" />
+        <TextField fx:id="srcField" prefWidth="60" styleClass="textFields" />
+        <Label styleClass="texts" text="Destination Vertex:" />
+        <TextField fx:id="destField" prefWidth="60" styleClass="textFields" />
+        <Label styleClass="texts" text="Weight:" />
+        <TextField fx:id="weightField" prefWidth="60" styleClass="textFields" />
         <Button fx:id="addEdgeButton" onAction="#addEdge" text="Add Edge" />
     </HBox>
     <HBox alignment="CENTER" spacing="10">
         <Button fx:id="mstButton" onAction="#computeMST" text="Compute MST" />
+        <Button fx:id="undoButton" onAction="#undo" text="Undo" />
+        <Button fx:id="redoButton" onAction="#redo" text="Redo" />
         <Button fx:id="clearButton" onAction="#clearGraph" text="Clear" />
         <Button fx:id="prevStepButton" onAction="#prevStep" text="Previous Step" />
         <Button fx:id="nextStepButton" onAction="#nextStep" text="Next Step" />
@@ -38,17 +43,24 @@
         <Label fx:id="errorLabel" text="" textFill="RED" />
         <Label fx:id="stepIndicatorLabel" text="" />
     </HBox>
-   <HBox prefHeight="539.0" prefWidth="1259.0">
+   <HBox prefHeight="549.0" prefWidth="1259.0" spacing="10.0">
       <children>
-          <Pane fx:id="graphPane" prefHeight="539.0" prefWidth="864.0" style="-fx-border-color: black;" />
-          <TableView fx:id="mstTableView" prefHeight="200">
+          <Pane fx:id="graphPane" prefHeight="550.0" prefWidth="916.0" styleClass="graphPane">
+            <HBox.margin>
+               <Insets />
+            </HBox.margin>
+         </Pane>
+          <TableView fx:id="mstTableView" prefHeight="550.0" prefWidth="428.0">
               <columns>
-                  <TableColumn fx:id="edgeColumn" prefWidth="100" text="Edge" />
-                  <TableColumn fx:id="weightColumn" prefWidth="80" text="Weight" />
-                  <TableColumn fx:id="statusColumn" prefWidth="100" text="Status" />
-                  <TableColumn fx:id="totalWeightColumn" prefWidth="120" text="Total MST Weight" />
+                  <TableColumn fx:id="edgeColumn" prefWidth="80.79998934268951" text="Edge" />
+                  <TableColumn fx:id="weightColumn" prefWidth="75.99999237060547" text="Weight" />
+                  <TableColumn fx:id="statusColumn" prefWidth="98.4000244140625" text="Status" />
+                  <TableColumn fx:id="totalWeightColumn" prefWidth="124.00004272460939" text="Total MST" />
               </columns>
           </TableView>
       </children>
+      <VBox.margin>
+         <Insets left="5.0" right="5.0" />
+      </VBox.margin>
    </HBox>
 </VBox>

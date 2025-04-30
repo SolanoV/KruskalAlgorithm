@@ -13,7 +13,6 @@
             graph.addEdge(2, 4, 9); // Edge from 2 to 4 with weight 9
             graph.addEdge(3, 4, 4); // Edge from 3 to 4 with weight 4
 
-            // Print the graph
             graph.printGraph();
         }
     }

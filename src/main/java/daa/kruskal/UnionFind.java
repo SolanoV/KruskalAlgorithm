@@ -13,7 +13,6 @@ public class UnionFind {
         }
     }
 
-    // Find the root of a vertex with path compression
     public int find(int x) {
         if (parent[x] != x) {
             parent[x] = find(parent[x]); // Path compression
@@ -21,14 +20,12 @@ public class UnionFind {
         return parent[x];
     }
 
-    // Union two sets by rank
     public boolean union(int x, int y) {
         int rootX = find(x);
         int rootY = find(y);
         if (rootX == rootY) {
             return false; // Cycle detected
         }
-        // Attach smaller rank tree under root of higher rank tree
         if (rank[rootX] < rank[rootY]) {
             parent[rootX] = rootY;
         } else if (rank[rootX] > rank[rootY]) {

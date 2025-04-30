@@ -19,6 +19,11 @@ public class WeightedGraph {
         adjacent.get(destination).add(new Edge(source, weight));
     }
 
+    public void removeEdge(int source, int destination) {
+        adjacent.get(source).removeIf(edge -> edge.getDestination() == destination);
+        adjacent.get(destination).removeIf(edge -> edge.getDestination() == source);
+    }
+
     public List<Edge> getNeighbors(int vertex) {
         return adjacent.get(vertex);
     }

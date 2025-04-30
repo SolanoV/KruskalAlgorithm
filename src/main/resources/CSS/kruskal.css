@@ -1,0 +1,32 @@
+.backgroundPane{
+    -fx-background-color: #1d1d1d;
+}
+.graphPane{
+    -fx-background-color: #d0d0d0;
+    -fx-border-radius: 10px;
+    -fx-border-color: #0b0b0b;
+    -fx-background-radius: 13px;
+    -fx-border-width: 3px;
+}
+.texts{
+    -fx-text-fill: white;
+    -fx-font-family: "Inter 18pt Black";
+}
+.notificationText{
+    -fx-font-family: "Inter 18pt Black";
+}
+
+.textFields{
+    -fx-font-family: "Inter 18pt Black";
+    -fx-background-color: #e4e4e4;
+    -fx-background-radius: 10px;
+    -fx-background-insets: 2.5;
+    -fx-border-width:3px;
+    -fx-border-color: white;
+    -fx-border-radius: 10px;
+    -fx-effect: innershadow(gaussian, rgba(0, 0, 0, 0.4), 10, 0.5, 2, 2);
+}
+
+.buttons{
+    -fx-background-color: #3a6bf8;
+}

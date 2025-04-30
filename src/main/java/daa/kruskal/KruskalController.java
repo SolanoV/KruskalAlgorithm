@@ -6,51 +6,38 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.geometry.Point2D;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.Pane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Line;
 import javafx.scene.text.Text;
+import javafx.scene.text.Font;
+import javafx.scene.text.FontWeight;
 
 import java.util.*;
 
 public class KruskalController {
-    @FXML
-    private TextField verticesField;
-    @FXML
-    private TextField srcField;
-    @FXML
-    private TextField destField;
-    @FXML
-    private TextField weightField;
-    @FXML
-    private Button createGraphButton;
-    @FXML
-    private Button addEdgeButton;
-    @FXML
-    private Button mstButton;
-    @FXML
-    private Button clearButton;
-    @FXML
-    private Button prevStepButton;
-    @FXML
-    private Button nextStepButton;
-    @FXML
-    private Label errorLabel;
-    @FXML
-    private Label stepIndicatorLabel;
-    @FXML
-    private Pane graphPane;
-    @FXML
-    private TableView<MSTStep> mstTableView;
-    @FXML
-    private TableColumn<MSTStep, String> edgeColumn;
-    @FXML
-    private TableColumn<MSTStep, Integer> weightColumn;
-    @FXML
-    private TableColumn<MSTStep, Boolean> statusColumn;
-    @FXML
-    private TableColumn<MSTStep, Integer> totalWeightColumn;
+    @FXML private TextField verticesField;
+    @FXML private TextField srcField;
+    @FXML private TextField destField;
+    @FXML private TextField weightField;
+    @FXML private Button createGraphButton;
+    @FXML private Button addEdgeButton;
+    @FXML private Button undoButton;
+    @FXML private Button redoButton;
+    @FXML private Button mstButton;
+    @FXML private Button clearButton;
+    @FXML private Button prevStepButton;
+    @FXML private Button nextStepButton;
+    @FXML private Label errorLabel;
+    @FXML private Label stepIndicatorLabel;
+    @FXML private Pane graphPane;
+    @FXML private TableView<MSTStep> mstTableView;
+    @FXML private TableColumn<MSTStep, String> edgeColumn;
+    @FXML private TableColumn<MSTStep, Integer> weightColumn;
+    @FXML private TableColumn<MSTStep, Boolean> statusColumn;
+    @FXML private TableColumn<MSTStep, Integer> totalWeightColumn;
 
     private WeightedGraph graph;
     private Circle[] vertexCircles;
@@ -60,60 +47,19 @@ public class KruskalController {
     private Map<Integer, Integer> reverseLabelMapping; // Maps display label to internal index
     private List<Point2D> vertexPositions; // Stores current vertex positions
     private Random random = new Random();
-    private Map<String, Line> edgeLines; // Stores edge lines for dynamic updates
-    private Map<String, Text> edgeWeightLabels; // Stores edge weight labels
+    private Map<String, Line> edgeLinesBlack; // Stores black background edge lines
+    private Map<String, Text> edgeWeightLabelsBlack; // Stores weight labels for black lines
+    private Map<String, Text> edgeStatusLabelsBlack; // Stores status labels for black lines
+    private Map<String, Line> edgeLinesColored; // Stores colored (limegreen/crimson) edge lines
+    private Map<String, Text> edgeWeightLabelsColored; // Stores weight labels for colored lines
+    private Map<String, Text> edgeStatusLabelsColored; // Stores status labels for colored lines
     private double dragStartX, dragStartY; // For dragging vertices
     private List<WeightedGraph.EdgeInfo> allEdges; // All edges for MST
     private List<WeightedGraph.EdgeInfo> mstEdges; // MST edges
     private int currentStep; // Current step in MST process
     private int totalWeight; // Total MST weight
-
-    // Class to represent an MST step in the TableView
-    public static class MSTStep {
-        private final SimpleStringProperty edge;
-        private final SimpleIntegerProperty weight;
-        private final SimpleBooleanProperty accepted;
-        private final SimpleIntegerProperty totalWeight;
-
-        public MSTStep(String edge, int weight, boolean accepted, int totalWeight) {
-            this.edge = new SimpleStringProperty(edge);
-            this.weight = new SimpleIntegerProperty(weight);
-            this.accepted = new SimpleBooleanProperty(accepted);
-            this.totalWeight = new SimpleIntegerProperty(totalWeight);
-        }
-
-        public String getEdge() {
-            return edge.get();
-        }
-
-        public SimpleStringProperty edgeProperty() {
-            return edge;
-        }
-
-        public int getWeight() {
-            return weight.get();
-        }
-
-        public SimpleIntegerProperty weightProperty() {
-            return weight;
-        }
-
-        public boolean isAccepted() {
-            return accepted.get();
-        }
-
-        public SimpleBooleanProperty acceptedProperty() {
-            return accepted;
-        }
-
-        public int getTotalWeight() {
-            return totalWeight.get();
-        }
-
-        public SimpleIntegerProperty totalWeightProperty() {
-            return totalWeight;
-        }
-    }
+    private Stack<GraphAction> undoStack; // Stack for undo actions
+    private Stack<GraphAction> redoStack; // Stack for redo actions
 
     @FXML
     private void initialize() {
@@ -121,10 +67,19 @@ public class KruskalController {
         destField.setDisable(true);
         weightField.setDisable(true);
         addEdgeButton.setDisable(true);
+        undoButton.setDisable(true);
+        redoButton.setDisable(true);
         mstButton.setDisable(true);
         prevStepButton.setDisable(true);
         nextStepButton.setDisable(true);
         stepIndicatorLabel.setText("");
+        undoStack = new Stack<>();
+        redoStack = new Stack<>();
+
+        // Enable Enter key to add edge
+        srcField.setOnAction(event -> addEdge());
+        destField.setOnAction(event -> addEdge());
+        weightField.setOnAction(event -> addEdge());
 
         // Initialize TableView columns
         edgeColumn.setCellValueFactory(cellData -> cellData.getValue().edgeProperty());
@@ -142,6 +97,29 @@ public class KruskalController {
             }
         });
         totalWeightColumn.setCellValueFactory(cellData -> cellData.getValue().totalWeightProperty().asObject());
+
+        // Add custom cell factory to highlight the current step
+        edgeColumn.setCellFactory(column -> new TableCell<>() {
+            @Override
+            protected void updateItem(String edge, boolean empty) {
+                super.updateItem(edge, empty);
+                if (empty || edge == null) {
+                    setText(null);
+                    setStyle("");
+                    setFont(Font.font("System", FontWeight.NORMAL, 12));
+                } else {
+                    setText(edge);
+                    int rowIndex = getIndex();
+                    if (rowIndex == currentStep && rowIndex >= 0) {
+                        setStyle("-fx-background-color: #e0e0e0;");
+                        setFont(Font.font("System", FontWeight.BOLD, 12));
+                    } else {
+                        setStyle("");
+                        setFont(Font.font("System", FontWeight.NORMAL, 12));
+                    }
+                }
+            }
+        });
     }
 
     @FXML
@@ -156,30 +134,20 @@ public class KruskalController {
                 errorLabel.setText("Maximum 20 vertices allowed.");
                 return;
             }
+            // Record current graph state for undo
+            GraphAction action = new GraphAction("create", graph != null ? graph.getVertices() : 0,
+                    graph != null ? graph.getAllEdges() : null, vertexPositions, vertexLabelMapping, reverseLabelMapping);
+            undoStack.push(action);
+            redoStack.clear();
             initializeGraph(vertices);
-            // Add minimal edges for perfect squares to ensure connectivity without overlaps
-            if (isPerfectSquare(vertices)) {
-                int gridSize = (int) Math.sqrt(vertices);
-                // Create a row-major spanning tree with orthogonal edges
-                for (int row = 0; row < gridSize; row++) {
-                    for (int col = 0; col < gridSize - 1; col++) {
-                        int u = row * gridSize + col;
-                        int v = row * gridSize + (col + 1);
-                        graph.addEdge(u, v, 1 + random.nextInt(10)); // Right
-                    }
-                    if (row < gridSize - 1) {
-                        int u = row * gridSize;
-                        int v = (row + 1) * gridSize;
-                        graph.addEdge(u, v, 1 + random.nextInt(10)); // Down
-                    }
-                }
-            }
             drawGraph(false);
             errorLabel.setText("Graph created with " + vertices + " vertices.");
             srcField.setDisable(false);
             destField.setDisable(false);
             weightField.setDisable(false);
             addEdgeButton.setDisable(false);
+            undoButton.setDisable(false);
+            redoButton.setDisable(true);
             mstButton.setDisable(false);
             verticesField.clear();
             mstTableView.getItems().clear();
@@ -230,6 +198,11 @@ public class KruskalController {
             }
 
             graph.addEdge(src, dest, weight);
+            // Record action for undo
+            undoStack.push(new GraphAction("add", src, dest, weight));
+            redoStack.clear();
+            undoButton.setDisable(false);
+            redoButton.setDisable(true);
             drawGraph(false);
             errorLabel.setText("Edge added: (" + srcLabel + ", " + destLabel + ", " + weight + ")");
             srcField.clear();
@@ -241,6 +214,114 @@ public class KruskalController {
             stepIndicatorLabel.setText("");
         } catch (NumberFormatException ex) {
             errorLabel.setText("Please enter valid integers for source, destination, and weight.");
+        }
+    }
+
+    @FXML
+    private void undo() {
+        if (!undoStack.isEmpty()) {
+            GraphAction action = undoStack.pop();
+            if (action.type.equals("add")) {
+                // Undo adding an edge
+                graph.removeEdge(action.source, action.destination);
+                redoStack.push(new GraphAction("remove", action.source, action.destination, action.weight));
+                errorLabel.setText("Undone: Added edge (" + vertexLabelMapping[action.source] + ", " +
+                        vertexLabelMapping[action.destination] + ")");
+                drawGraph(false);
+            } else if (action.type.equals("create")) {
+                // Undo creating a graph
+                redoStack.push(new GraphAction("create", graph != null ? graph.getVertices() : 0,
+                        graph != null ? graph.getAllEdges() : null, vertexPositions, vertexLabelMapping, reverseLabelMapping));
+                if (action.vertices > 0) {
+                    // Restore previous graph
+                    graph = new WeightedGraph(action.vertices);
+                    vertexPositions = action.positions;
+                    vertexLabelMapping = action.labelMapping;
+                    reverseLabelMapping = action.reverseMapping;
+                    for (WeightedGraph.EdgeInfo edge : action.edges) {
+                        graph.addEdge(edge.source, edge.destination, edge.weight);
+                    }
+                    drawGraph(false);
+                    errorLabel.setText("Undone: Created graph with " + action.vertices + " vertices");
+                    srcField.setDisable(false);
+                    destField.setDisable(false);
+                    weightField.setDisable(false);
+                    addEdgeButton.setDisable(false);
+                    mstButton.setDisable(false);
+                } else {
+                    // No previous graph, clear everything
+                    clearGraphInternal();
+                    errorLabel.setText("Undone: Created graph");
+                }
+            } else if (action.type.equals("clear")) {
+                // Undo clearing a graph
+                redoStack.push(new GraphAction("clear", 0, null, null, null, null));
+                graph = new WeightedGraph(action.vertices);
+                vertexPositions = action.positions;
+                vertexLabelMapping = action.labelMapping;
+                reverseLabelMapping = action.reverseMapping;
+                for (WeightedGraph.EdgeInfo edge : action.edges) {
+                    graph.addEdge(edge.source, edge.destination, edge.weight);
+                }
+                drawGraph(false);
+                errorLabel.setText("Undone: Cleared graph");
+                srcField.setDisable(false);
+                destField.setDisable(false);
+                weightField.setDisable(false);
+                addEdgeButton.setDisable(false);
+                mstButton.setDisable(false);
+            }
+            mstTableView.getItems().clear();
+            prevStepButton.setDisable(true);
+            nextStepButton.setDisable(true);
+            stepIndicatorLabel.setText("");
+            undoButton.setDisable(undoStack.isEmpty());
+            redoButton.setDisable(redoStack.isEmpty());
+        }
+    }
+
+    @FXML
+    private void redo() {
+        if (!redoStack.isEmpty()) {
+            GraphAction action = redoStack.pop();
+            if (action.type.equals("remove")) {
+                // Redo adding an edge
+                graph.addEdge(action.source, action.destination, action.weight);
+                undoStack.push(new GraphAction("add", action.source, action.destination, action.weight));
+                errorLabel.setText("Redone: Added edge (" + vertexLabelMapping[action.source] + ", " +
+                        vertexLabelMapping[action.destination] + ")");
+                drawGraph(false);
+            } else if (action.type.equals("create")) {
+                // Redo creating a graph
+                undoStack.push(new GraphAction("create", graph != null ? graph.getVertices() : 0,
+                        graph != null ? graph.getAllEdges() : null, vertexPositions, vertexLabelMapping, reverseLabelMapping));
+                initializeGraph(action.vertices);
+                for (WeightedGraph.EdgeInfo edge : action.edges) {
+                    graph.addEdge(edge.source, edge.destination, edge.weight);
+                }
+                vertexPositions = action.positions;
+                vertexLabelMapping = action.labelMapping;
+                reverseLabelMapping = action.reverseMapping;
+                drawGraph(false);
+                errorLabel.setText("Redone: Created graph with " + action.vertices + " vertices");
+                srcField.setDisable(false);
+                destField.setDisable(false);
+                weightField.setDisable(false);
+                addEdgeButton.setDisable(false);
+                mstButton.setDisable(false);
+            } else if (action.type.equals("clear")) {
+                // Redo clearing a graph
+                undoStack.push(new GraphAction("clear", graph != null ? graph.getVertices() : 0,
+                        graph != null ? graph.getAllEdges() : null, vertexPositions, vertexLabelMapping, reverseLabelMapping));
+                clearGraphInternal();
+                errorLabel.setText("Redone: Cleared graph");
+            }
+            mstTableView.getItems().clear();
+            prevStepButton.setDisable(true);
+            nextStepButton.setDisable(true);
+            stepIndicatorLabel.setText("");
+            undoButton.setDisable(undoStack.isEmpty());
+            redoButton.setDisable(redoStack.isEmpty());
         }
     }
 
@@ -299,19 +380,57 @@ public class KruskalController {
 
     private void updateStep() {
         graphPane.getChildren().clear();
-        drawGraph(false); // Draw all vertices and edges in black initially
-        Set<String> drawnEdges = new HashSet<>();
+        // Do not reinitialize the maps; reuse them to keep references consistent
+        edgeLinesBlack.clear();
+        edgeWeightLabelsBlack.clear();
+        edgeStatusLabelsBlack.clear();
+        edgeLinesColored.clear();
+        edgeWeightLabelsColored.clear();
+        edgeStatusLabelsColored.clear();
 
-        // Draw all edges up to current step
+        // Draw vertices first to ensure they are below edges
+        drawVertices();
+
+        // Draw all edges in black (background edges)
+        Set<String> drawnEdges = new HashSet<>();
+        for (int u = 0; u < graph.getVertices(); u++) {
+            for (Edge edge : graph.getNeighbors(u)) {
+                int v = edge.getDestination();
+                String edgeKey = Math.min(u, v) + "-" + Math.max(u, v);
+                if (!drawnEdges.contains(edgeKey)) {
+                    drawnEdges.add(edgeKey);
+                    drawEdge(u, v, edge.getWeight(), Color.BLACK, edgeKey, false, true);
+                }
+            }
+        }
+
+        // Draw MST edges up to current step in limegreen or crimson
+        drawnEdges.clear();
         for (int i = 0; i <= currentStep && i < allEdges.size(); i++) {
             WeightedGraph.EdgeInfo edge = allEdges.get(i);
             String edgeKey = Math.min(edge.source, edge.destination) + "-" + Math.max(edge.source, edge.destination);
             if (!drawnEdges.contains(edgeKey)) {
                 drawnEdges.add(edgeKey);
                 boolean isAccepted = mstEdges.contains(edge);
-                drawEdge(edge.source, edge.destination, edge.weight, isAccepted ? Color.LIMEGREEN : Color.RED, edgeKey);
+                drawEdge(edge.source, edge.destination, edge.weight, isAccepted ? Color.LIMEGREEN : Color.CRIMSON, edgeKey, isAccepted, false);
             }
         }
+
+        // Update TableView to show steps up to current step
+        List<MSTStep> visibleSteps = new ArrayList<>();
+        for (int i = 0; i <= Math.max(0, currentStep) && i < allEdges.size(); i++) {
+            WeightedGraph.EdgeInfo edge = allEdges.get(i);
+            boolean isAccepted = mstEdges.contains(edge);
+            String edgeStr = "(" + vertexLabelMapping[edge.source] + ", " + vertexLabelMapping[edge.destination] + ")";
+            int stepTotalWeight = 0;
+            for (WeightedGraph.EdgeInfo mstEdge : mstEdges) {
+                if (mstEdges.indexOf(mstEdge) <= mstEdges.indexOf(edge) || (isAccepted && mstEdge.equals(edge))) {
+                    stepTotalWeight += mstEdge.weight;
+                }
+            }
+            visibleSteps.add(new MSTStep(edgeStr, edge.weight, isAccepted, stepTotalWeight));
+        }
+        mstTableView.getItems().setAll(visibleSteps);
 
         // Update step indicator and message
         if (currentStep == -1) {
@@ -319,6 +438,7 @@ public class KruskalController {
             errorLabel.setText("Ready to start MST. Press Next to begin.");
             prevStepButton.setDisable(true);
             nextStepButton.setDisable(false);
+            mstTableView.getItems().clear(); // Clear table at step -1
         } else if (currentStep < allEdges.size()) {
             WeightedGraph.EdgeInfo edge = allEdges.get(currentStep);
             boolean isAccepted = mstEdges.contains(edge);
@@ -332,20 +452,40 @@ public class KruskalController {
             errorLabel.setText("MST completed with " + mstEdges.size() + " edges, total weight: " + totalWeight);
             prevStepButton.setDisable(false);
             nextStepButton.setDisable(true);
-            drawGraph(true); // Show final MST with limegreen edges
+            drawGraph(true); // Show final MST with black non-MST edges and limegreen MST edges
         }
+
+        // Refresh TableView to apply styling
+        mstTableView.refresh();
     }
 
     @FXML
     private void clearGraph() {
+        if (graph != null) {
+            // Record current graph state for undo
+            undoStack.push(new GraphAction("clear", graph.getVertices(), graph.getAllEdges(),
+                    vertexPositions, vertexLabelMapping, reverseLabelMapping));
+            redoStack.clear();
+            undoButton.setDisable(false);
+            redoButton.setDisable(true);
+        }
+        clearGraphInternal();
+        errorLabel.setText("Graph cleared.");
+    }
+
+    private void clearGraphInternal() {
         graph = null;
         vertexCircles = null;
         vertexLabels = null;
         vertexLabelMapping = null;
         reverseLabelMapping = null;
         vertexPositions = null;
-        edgeLines = null;
-        edgeWeightLabels = null;
+        edgeLinesBlack = null;
+        edgeWeightLabelsBlack = null;
+        edgeStatusLabelsBlack = null;
+        edgeLinesColored = null;
+        edgeWeightLabelsColored = null;
+        edgeStatusLabelsColored = null;
         allEdges = null;
         mstEdges = null;
         currentStep = -1;
@@ -355,7 +495,6 @@ public class KruskalController {
         srcField.clear();
         destField.clear();
         weightField.clear();
-        errorLabel.setText("");
         stepIndicatorLabel.setText("");
         srcField.setDisable(true);
         destField.setDisable(true);
@@ -415,16 +554,65 @@ public class KruskalController {
             }
         }
 
-        edgeLines = new HashMap<>();
-        edgeWeightLabels = new HashMap<>();
+        edgeLinesBlack = new HashMap<>();
+        edgeWeightLabelsBlack = new HashMap<>();
+        edgeStatusLabelsBlack = new HashMap<>();
+        edgeLinesColored = new HashMap<>();
+        edgeWeightLabelsColored = new HashMap<>();
+        edgeStatusLabelsColored = new HashMap<>();
     }
 
     private void drawGraph(boolean isMST) {
         graphPane.getChildren().clear();
-        edgeLines.clear();
-        edgeWeightLabels.clear();
+        edgeLinesBlack = new HashMap<>();
+        edgeWeightLabelsBlack = new HashMap<>();
+        edgeStatusLabelsBlack = new HashMap<>();
+        edgeLinesColored = new HashMap<>();
+        edgeWeightLabelsColored = new HashMap<>();
+        edgeStatusLabelsColored = new HashMap<>();
         if (graph == null) return;
 
+        drawVertices();
+
+        // Draw all edges in black initially with crimson weight labels
+        Set<String> drawnEdges = new HashSet<>();
+        for (int u = 0; u < graph.getVertices(); u++) {
+            for (Edge edge : graph.getNeighbors(u)) {
+                int v = edge.getDestination();
+                String edgeKey = Math.min(u, v) + "-" + Math.max(u, v);
+                if (!drawnEdges.contains(edgeKey)) {
+                    drawnEdges.add(edgeKey);
+                    drawEdge(u, v, edge.getWeight(), Color.BLACK, edgeKey, false, true);
+                }
+            }
+        }
+
+        // If in MST mode, update the color of MST edges and their weight labels to limegreen
+        if (isMST) {
+            for (WeightedGraph.EdgeInfo edge : mstEdges) {
+                int u = edge.source;
+                int v = edge.destination;
+                String edgeKey = Math.min(u, v) + "-" + Math.max(u, v);
+                // Update the existing line color to limegreen
+                Line line = edgeLinesBlack.get(edgeKey);
+                if (line != null) {
+                    line.setStroke(Color.LIMEGREEN);
+                }
+                // Update the existing weight label color to limegreen
+                Text weightLabel = edgeWeightLabelsBlack.get(edgeKey);
+                if (weightLabel != null) {
+                    weightLabel.setFill(Color.LIMEGREEN);
+                }
+                // Ensure no check/X symbol in final MST view
+                Text statusLabel = edgeStatusLabelsBlack.get(edgeKey);
+                if (statusLabel != null) {
+                    statusLabel.setText("");
+                }
+            }
+        }
+    }
+
+    private void drawVertices() {
         int n = graph.getVertices();
         vertexCircles = new Circle[n];
         vertexLabels = new Text[n];
@@ -439,6 +627,7 @@ public class KruskalController {
             circle.setStroke(Color.BLACK);
             vertexCircles[i] = circle;
 
+            // Vertex label offset
             Text label = new Text(x - 5, y + 5, String.valueOf(vertexLabelMapping[i]));
             vertexLabels[i] = label;
 
@@ -466,20 +655,6 @@ public class KruskalController {
 
             graphPane.getChildren().addAll(circle, label);
         }
-
-        // Draw edges
-        Set<String> drawnEdges = new HashSet<>();
-        for (int u = 0; u < n; u++) {
-            for (Edge edge : graph.getNeighbors(u)) {
-                int v = edge.getDestination();
-                String edgeKey = Math.min(u, v) + "-" + Math.max(u, v);
-                if (!drawnEdges.contains(edgeKey)) {
-                    drawnEdges.add(edgeKey);
-                    Color color = isMST && isMstEdge(u, v) ? Color.LIMEGREEN : Color.BLACK;
-                    drawEdge(u, v, edge.getWeight(), color, edgeKey);
-                }
-            }
-        }
     }
 
     private boolean isMstEdge(int u, int v) {
@@ -492,12 +667,13 @@ public class KruskalController {
         return false;
     }
 
-    private void drawEdge(int u, int v, int weight, Color color, String edgeKey) {
+    private void drawEdge(int u, int v, int weight, Color color, String edgeKey, boolean isAccepted, boolean isBlack) {
         double x1 = vertexCircles[u].getCenterX();
         double y1 = vertexCircles[u].getCenterY();
         double x2 = vertexCircles[v].getCenterX();
         double y2 = vertexCircles[v].getCenterY();
 
+        // Ensure edges connect to vertex boundaries
         double angle = Math.atan2(y2 - y1, x2 - x1);
         double startX = x1 + vertexRadius * Math.cos(angle);
         double startY = y1 + vertexRadius * Math.sin(angle);
@@ -508,29 +684,78 @@ public class KruskalController {
         line.setStroke(color);
         line.setStrokeWidth(2.0);
         line.setUserData(new int[]{u, v});
-        edgeLines.put(edgeKey, line);
+        if (isBlack) {
+            edgeLinesBlack.put(edgeKey, line);
+        } else {
+            edgeLinesColored.put(edgeKey, line);
+        }
 
         double midX = (startX + endX) / 2;
         double midY = (startY + endY) / 2;
-        Text weightLabel = new Text(midX, midY, String.valueOf(weight));
-        weightLabel.setFill(Color.RED);
+        // Horizontal offset for weight label
+        Text weightLabel = new Text(midX - 10, midY, String.valueOf(weight));
+        weightLabel.setFill(isBlack ? Color.CRIMSON : color); // Crimson for black lines, matching color for MST lines
         weightLabel.setUserData(new int[]{u, v});
-        edgeWeightLabels.put(edgeKey, weightLabel);
+        if (isBlack) {
+            edgeWeightLabelsBlack.put(edgeKey, weightLabel);
+        } else {
+            edgeWeightLabelsColored.put(edgeKey, weightLabel);
+        }
 
-        graphPane.getChildren().addAll(line, weightLabel);
+        // Add check/X symbol for MST edges during step-by-step
+        Text statusLabel = new Text(midX + 5, midY, "");
+        if (!isBlack) { // Only for colored lines in step-by-step view
+            if (color == Color.LIMEGREEN && !isFinalMST()) {
+                statusLabel.setText("\u2714"); // Check mark
+                statusLabel.setFill(Color.LIMEGREEN);
+            } else if (color == Color.CRIMSON) {
+                statusLabel.setText("\u2717"); // X mark
+                statusLabel.setFill(Color.CRIMSON);
+            }
+        }
+        statusLabel.setUserData(new int[]{u, v});
+        if (isBlack) {
+            edgeStatusLabelsBlack.put(edgeKey, statusLabel);
+        } else {
+            edgeStatusLabelsColored.put(edgeKey, statusLabel);
+        }
+
+        graphPane.getChildren().addAll(line, weightLabel, statusLabel);
+    }
+
+    private boolean isFinalMST() {
+        return currentStep >= allEdges.size();
     }
 
     private void updateEdges(int vertexIndex) {
+        // Collect edges that need updating (involving the dragged vertex)
         List<String> edgesToUpdate = new ArrayList<>();
-        for (String edgeKey : edgeLines.keySet()) {
-            int[] vertices = (int[]) edgeLines.get(edgeKey).getUserData();
+        // Check black lines
+        for (String edgeKey : edgeLinesBlack.keySet()) {
+            int[] vertices = (int[]) edgeLinesBlack.get(edgeKey).getUserData();
+            if (vertices[0] == vertexIndex || vertices[1] == vertexIndex) {
+                edgesToUpdate.add(edgeKey);
+            }
+        }
+        // Check colored lines (won't have duplicates since drawnEdges prevents it)
+        for (String edgeKey : edgeLinesColored.keySet()) {
+            int[] vertices = (int[]) edgeLinesColored.get(edgeKey).getUserData();
             if (vertices[0] == vertexIndex || vertices[1] == vertexIndex) {
                 edgesToUpdate.add(edgeKey);
             }
         }
 
+        // Update all relevant edges
         for (String edgeKey : edgesToUpdate) {
-            int[] vertices = (int[]) edgeLines.get(edgeKey).getUserData();
+            // Get the vertices for this edge
+            int[] vertices;
+            Line lineBlack = edgeLinesBlack.get(edgeKey);
+            if (lineBlack != null) {
+                vertices = (int[]) lineBlack.getUserData();
+            } else {
+                // If not in black, must be in colored
+                vertices = (int[]) edgeLinesColored.get(edgeKey).getUserData();
+            }
             int u = vertices[0];
             int v = vertices[1];
             int weight = 0;
@@ -552,17 +777,60 @@ public class KruskalController {
             double endX = x2 - vertexRadius * Math.cos(angle);
             double endY = y2 - vertexRadius * Math.sin(angle);
 
-            Line line = edgeLines.get(edgeKey);
-            line.setStartX(startX);
-            line.setStartY(startY);
-            line.setEndX(endX);
-            line.setEndY(endY);
-
             double midX = (startX + endX) / 2;
             double midY = (startY + endY) / 2;
-            Text weightLabel = edgeWeightLabels.get(edgeKey);
-            weightLabel.setX(midX);
-            weightLabel.setY(midY);
+
+            // Update black line and its labels
+            if (lineBlack != null) {
+                lineBlack.setStartX(startX);
+                lineBlack.setStartY(startY);
+                lineBlack.setEndX(endX);
+                lineBlack.setEndY(endY);
+
+                Text weightLabelBlack = edgeWeightLabelsBlack.get(edgeKey);
+                if (weightLabelBlack != null) {
+                    weightLabelBlack.setX(midX - 10);
+                    weightLabelBlack.setY(midY);
+                }
+
+                Text statusLabelBlack = edgeStatusLabelsBlack.get(edgeKey);
+                if (statusLabelBlack != null) {
+                    statusLabelBlack.setX(midX + 5);
+                    statusLabelBlack.setY(midY);
+                    // In drawGraph (final MST view), status labels are cleared
+                    // No need to update check/X here since drawGraph handles it
+                }
+            }
+
+            // Update colored line and its labels (if it exists)
+            Line lineColored = edgeLinesColored.get(edgeKey);
+            if (lineColored != null) {
+                lineColored.setStartX(startX);
+                lineColored.setStartY(startY);
+                lineColored.setEndX(endX);
+                lineColored.setEndY(endY);
+
+                Text weightLabelColored = edgeWeightLabelsColored.get(edgeKey);
+                if (weightLabelColored != null) {
+                    weightLabelColored.setX(midX - 10);
+                    weightLabelColored.setY(midY);
+                }
+
+                Text statusLabelColored = edgeStatusLabelsColored.get(edgeKey);
+                if (statusLabelColored != null) {
+                    statusLabelColored.setX(midX + 5);
+                    statusLabelColored.setY(midY);
+                    if (lineColored.getStroke() == Color.LIMEGREEN && !isFinalMST()) {
+                        statusLabelColored.setText("\u2714");
+                        statusLabelColored.setFill(Color.LIMEGREEN);
+                    } else if (lineColored.getStroke() == Color.CRIMSON) {
+                        statusLabelColored.setText("\u2717");
+                        statusLabelColored.setFill(Color.CRIMSON);
+                    } else {
+                        statusLabelColored.setText("");
+                    }
+                }
+            }
         }
     }
 
