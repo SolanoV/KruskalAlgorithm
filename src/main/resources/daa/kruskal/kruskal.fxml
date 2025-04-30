@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import java.lang.String?>
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
@@ -16,32 +17,36 @@
     </padding>
     <HBox alignment="CENTER" prefWidth="1259.0" spacing="10">
         <Label styleClass="texts" text="Number of Vertices:" />
-        <TextField fx:id="verticesField" prefWidth="100" styleClass="textFields" />
-        <Button fx:id="createGraphButton" onAction="#createGraph" text="Create Graph" />
+        <TextField fx:id="verticesField" alignment="CENTER" prefWidth="100" styleClass="textFields" />
+        <Button fx:id="createGraphButton" onAction="#createGraph" styleClass="createButton" text="Create Graph" />
       <VBox.margin>
          <Insets />
       </VBox.margin>
     </HBox>
     <HBox alignment="CENTER" spacing="10">
         <Label styleClass="texts" text="Source Vertex:" />
-        <TextField fx:id="srcField" prefWidth="60" styleClass="textFields" />
+        <TextField fx:id="srcField" alignment="CENTER" prefWidth="60" styleClass="textFields" />
         <Label styleClass="texts" text="Destination Vertex:" />
-        <TextField fx:id="destField" prefWidth="60" styleClass="textFields" />
+        <TextField fx:id="destField" alignment="CENTER" prefWidth="60" styleClass="textFields" />
         <Label styleClass="texts" text="Weight:" />
-        <TextField fx:id="weightField" prefWidth="60" styleClass="textFields" />
-        <Button fx:id="addEdgeButton" onAction="#addEdge" text="Add Edge" />
+        <TextField fx:id="weightField" alignment="CENTER" prefWidth="60" styleClass="textFields" />
+        <Button fx:id="addEdgeButton" onAction="#addEdge" styleClass="buttons" text="Add Edge" />
     </HBox>
     <HBox alignment="CENTER" spacing="10">
-        <Button fx:id="mstButton" onAction="#computeMST" text="Compute MST" />
-        <Button fx:id="undoButton" onAction="#undo" text="Undo" />
-        <Button fx:id="redoButton" onAction="#redo" text="Redo" />
-        <Button fx:id="clearButton" onAction="#clearGraph" text="Clear" />
-        <Button fx:id="prevStepButton" onAction="#prevStep" text="Previous Step" />
-        <Button fx:id="nextStepButton" onAction="#nextStep" text="Next Step" />
+        <Button fx:id="mstButton" onAction="#computeMST" styleClass="mstButton" text="Compute MST" />
+        <Button fx:id="undoButton" onAction="#undo" styleClass="buttons" text="Undo" />
+        <Button fx:id="redoButton" onAction="#redo" styleClass="buttons" text="Redo" />
+        <Button fx:id="clearButton" onAction="#clearGraph" styleClass="buttons" text="Clear" />
+        <Button fx:id="prevStepButton" onAction="#prevStep" styleClass="buttons" text="Previous Step" />
+        <Button fx:id="nextStepButton" onAction="#nextStep" styleClass="buttons" text="Next Step" />
     </HBox>
     <HBox alignment="CENTER" spacing="10">
-        <Label fx:id="errorLabel" text="" textFill="RED" />
-        <Label fx:id="stepIndicatorLabel" text="" />
+        <Label fx:id="errorLabel" styleClass="notificationText" text="" textFill="RED" />
+        <Label fx:id="stepIndicatorLabel" text="">
+         <styleClass>
+            <String fx:value="notificationText" />
+            <String fx:value="notificationStepText" />
+         </styleClass></Label>
     </HBox>
    <HBox prefHeight="549.0" prefWidth="1259.0" spacing="10.0">
       <children>
@@ -50,7 +55,7 @@
                <Insets />
             </HBox.margin>
          </Pane>
-          <TableView fx:id="mstTableView" prefHeight="550.0" prefWidth="428.0">
+          <TableView fx:id="mstTableView" prefHeight="550.0" prefWidth="428.0" styleClass="tableMST">
               <columns>
                   <TableColumn fx:id="edgeColumn" prefWidth="80.79998934268951" text="Edge" />
                   <TableColumn fx:id="weightColumn" prefWidth="75.99999237060547" text="Weight" />

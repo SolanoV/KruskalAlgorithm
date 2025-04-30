@@ -18,26 +18,46 @@ import javafx.scene.text.FontWeight;
 import java.util.*;
 
 public class KruskalController {
-    @FXML private TextField verticesField;
-    @FXML private TextField srcField;
-    @FXML private TextField destField;
-    @FXML private TextField weightField;
-    @FXML private Button createGraphButton;
-    @FXML private Button addEdgeButton;
-    @FXML private Button undoButton;
-    @FXML private Button redoButton;
-    @FXML private Button mstButton;
-    @FXML private Button clearButton;
-    @FXML private Button prevStepButton;
-    @FXML private Button nextStepButton;
-    @FXML private Label errorLabel;
-    @FXML private Label stepIndicatorLabel;
-    @FXML private Pane graphPane;
-    @FXML private TableView<MSTStep> mstTableView;
-    @FXML private TableColumn<MSTStep, String> edgeColumn;
-    @FXML private TableColumn<MSTStep, Integer> weightColumn;
-    @FXML private TableColumn<MSTStep, Boolean> statusColumn;
-    @FXML private TableColumn<MSTStep, Integer> totalWeightColumn;
+    @FXML
+    private TextField verticesField;
+    @FXML
+    private TextField srcField;
+    @FXML
+    private TextField destField;
+    @FXML
+    private TextField weightField;
+    @FXML
+    private Button createGraphButton;
+    @FXML
+    private Button addEdgeButton;
+    @FXML
+    private Button undoButton;
+    @FXML
+    private Button redoButton;
+    @FXML
+    private Button mstButton;
+    @FXML
+    private Button clearButton;
+    @FXML
+    private Button prevStepButton;
+    @FXML
+    private Button nextStepButton;
+    @FXML
+    private Label errorLabel;
+    @FXML
+    private Label stepIndicatorLabel;
+    @FXML
+    private Pane graphPane;
+    @FXML
+    private TableView<MSTStep> mstTableView;
+    @FXML
+    private TableColumn<MSTStep, String> edgeColumn;
+    @FXML
+    private TableColumn<MSTStep, Integer> weightColumn;
+    @FXML
+    private TableColumn<MSTStep, Boolean> statusColumn;
+    @FXML
+    private TableColumn<MSTStep, Integer> totalWeightColumn;
 
     private WeightedGraph graph;
     private Circle[] vertexCircles;
@@ -60,6 +80,8 @@ public class KruskalController {
     private int totalWeight; // Total MST weight
     private Stack<GraphAction> undoStack; // Stack for undo actions
     private Stack<GraphAction> redoStack; // Stack for redo actions
+
+
 
     @FXML
     private void initialize() {
@@ -166,8 +188,8 @@ public class KruskalController {
             return;
         }
         try {
-            int srcLabel = Integer.parseInt(srcField.getText());
-            int destLabel = Integer.parseInt(destField.getText());
+            int srcLabel = Integer.parseInt(srcField.getText())-1;
+            int destLabel = Integer.parseInt(destField.getText())-1;
             int weight = Integer.parseInt(weightField.getText());
 
             Integer src = reverseLabelMapping.get(srcLabel);
@@ -204,7 +226,7 @@ public class KruskalController {
             undoButton.setDisable(false);
             redoButton.setDisable(true);
             drawGraph(false);
-            errorLabel.setText("Edge added: (" + srcLabel + ", " + destLabel + ", " + weight + ")");
+            errorLabel.setText("Edge added: (" + (srcLabel+1) + ", " + (destLabel+1) + ", " + weight + ")");
             srcField.clear();
             destField.clear();
             weightField.clear();
@@ -421,13 +443,17 @@ public class KruskalController {
         for (int i = 0; i <= Math.max(0, currentStep) && i < allEdges.size(); i++) {
             WeightedGraph.EdgeInfo edge = allEdges.get(i);
             boolean isAccepted = mstEdges.contains(edge);
-            String edgeStr = "(" + vertexLabelMapping[edge.source] + ", " + vertexLabelMapping[edge.destination] + ")";
+            String edgeStr = "(" + (vertexLabelMapping[edge.source]+1) + ", " + (vertexLabelMapping[edge.destination]+1) + ")";
+
+            // Calculate total weight by summing weights of MST edges up to this step
             int stepTotalWeight = 0;
-            for (WeightedGraph.EdgeInfo mstEdge : mstEdges) {
-                if (mstEdges.indexOf(mstEdge) <= mstEdges.indexOf(edge) || (isAccepted && mstEdge.equals(edge))) {
-                    stepTotalWeight += mstEdge.weight;
+            for (int j = 0; j <= i; j++) {
+                WeightedGraph.EdgeInfo priorEdge = allEdges.get(j);
+                if (mstEdges.contains(priorEdge)) {
+                    stepTotalWeight += priorEdge.weight;
                 }
             }
+
             visibleSteps.add(new MSTStep(edgeStr, edge.weight, isAccepted, stepTotalWeight));
         }
         mstTableView.getItems().setAll(visibleSteps);
@@ -628,7 +654,7 @@ public class KruskalController {
             vertexCircles[i] = circle;
 
             // Vertex label offset
-            Text label = new Text(x - 5, y + 5, String.valueOf(vertexLabelMapping[i]));
+            Text label = new Text(x - 5, y + 5, String.valueOf(vertexLabelMapping[i]+1));
             vertexLabels[i] = label;
 
             // Make vertex draggable

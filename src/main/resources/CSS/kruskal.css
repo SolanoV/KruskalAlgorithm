@@ -1,3 +1,7 @@
+@font-face {
+    font-family:'Inter 18pt ExtraBold';
+    src: url("Inter_18pt-ExtraBold.ttf") format("truetype");
+}
 .backgroundPane{
     -fx-background-color: #1d1d1d;
 }
@@ -10,14 +14,17 @@
 }
 .texts{
     -fx-text-fill: white;
-    -fx-font-family: "Inter 18pt Black";
+    -fx-font-family: "Inter 18pt ExtraBold";
 }
 .notificationText{
-    -fx-font-family: "Inter 18pt Black";
+    -fx-font-family: "Inter 18pt ExtraBold";
+}
+.notificationStepText{
+    -fx-text-fill: #009dff;
 }
 
 .textFields{
-    -fx-font-family: "Inter 18pt Black";
+    -fx-font-family: "Inter 18pt ExtraBold";
     -fx-background-color: #e4e4e4;
     -fx-background-radius: 10px;
     -fx-background-insets: 2.5;
@@ -29,4 +36,82 @@
 
 .buttons{
     -fx-background-color: #3a6bf8;
+    -fx-background-radius: 12;
+    -fx-border-radius: 10;
+    -fx-border-color: #7d9eff;
+    -fx-border-width: 3px;
+    -fx-font-family: "Inter 18pt ExtraBold";
+    -fx-text-fill: white;
+    -fx-effect: innershadow(gaussian, rgba(0, 0, 0, 0.4), 10, 0.5, 2, 2);
+}
+.buttons:hover{
+    -fx-background-color: #a1b8ff;
+    -fx-border-color: #001446;
+    -fx-font-family: "Inter 18pt ExtraBold";
+    -fx-text-fill: #001446;
+}
+
+.mstButton{
+    -fx-background-color: #f8cc3a;
+    -fx-background-radius: 12;
+    -fx-border-radius: 10;
+    -fx-border-color: #ffe6ab;
+    -fx-border-width: 3px;
+    -fx-font-family: "Inter 18pt ExtraBold";
+    -fx-text-fill: white;
+    -fx-effect: innershadow(gaussian, rgba(0, 0, 0, 0.4), 10, 0.5, 2, 2);
+}
+.mstButton:hover{
+    -fx-background-color: #ffe2a6;
+    -fx-border-color: #b07c0d;
+    -fx-font-family: "Inter 18pt ExtraBold";
+    -fx-text-fill: #b07c0d;
+}
+
+.createButton{
+    -fx-background-color: #17bb19;
+    -fx-background-radius: 12;
+    -fx-border-radius: 10;
+    -fx-border-color: #b7ffb0;
+    -fx-border-width: 3px;
+    -fx-font-family: "Inter 18pt ExtraBold";
+    -fx-text-fill: white;
+    -fx-effect: innershadow(gaussian, rgba(0, 0, 0, 0.4), 10, 0.5, 2, 2);
+}
+
+.createButton:hover{
+    -fx-background-color: #58f259;
+    -fx-border-color: #025a03;
+    -fx-font-family: "Inter 18pt ExtraBold";
+    -fx-text-fill: #025a03;
+}
+
+.tableMST{
+    -fx-background-color: #27294d;
+    -fx-background-radius: 10;
+    -fx-font-family: "Inter 18pt ExtraBold";
+}
+
+.tableMST .column-header-background {
+    -fx-background-color: #161a39;
+    -fx-background-radius: 10;
+}
+
+.table-view .scroll-bar * {
+    -fx-background-color: #35354a;
+}
+
+.tableMST .column-header {
+    -fx-background-color: transparent;
+}
+
+.tableMST .column-header .label {
+    -fx-text-fill: white;
+}
+.tableMST .table-cell{
+    -fx-background-color: #2e2b53;
+    -fx-text-fill: white;
+    -fx-alignment: CENTER;
+    -fx-font-weight: bold;
+    -fx-font-size: 16;
 }
